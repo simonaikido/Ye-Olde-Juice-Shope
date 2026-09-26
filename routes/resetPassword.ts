@@ -15,7 +15,7 @@ import { UserModel } from '../models/user'
 
 export function resetPassword () {
   return async ({ body, connection }: Request, res: Response, next: NextFunction) => {
-    const email = body.email
+    const email = String(body.email)
     const answer = body.answer
     const newPassword = body.new
     const repeatPassword = body.repeat
