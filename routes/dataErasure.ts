@@ -34,7 +34,7 @@ router.get('/', (req: Request, res: Response, next: NextFunction) => {
       const answer = await SecurityAnswerModel.findOne({
         include: [{
           model: UserModel,
-          where: { email }
+          where: { email: String(email) }
         }]
       })
       if (answer == null) {
