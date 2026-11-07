@@ -5,7 +5,12 @@ import logger from '../lib/logger'
 import { type ChallengeKey } from '@juice-shop/models/challenge'
 
 export async function loadStaticData (file: string) {
-  const filePath = path.resolve('./data/static/' + file + '.yml')
+  const baseFull = path.resolve('./data/static/')
+  const filePath = path.join(baseFull, file + '.yml')
+  const rel = path.relative(baseFull, filePath)
+  if (rel === '..' || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel)) {
+    throw new Error('Invalid file path')
+  }
   return await readFile(filePath, 'utf8')
     .then(safeLoad)
     .catch(() => logger.error('Could not open file: "' + filePath + '"'))
