@@ -1,8 +1,14 @@
 import fs from 'node:fs'
+import path from 'node:path'
 import { diffLines, structuredPatch } from 'diff'
 import yaml from 'js-yaml'
 
 import { retrieveCodeSnippet } from '../routes/vulnCodeSnippet'
+
+const isPathInside = (baseDir: string, targetPath: string) => {
+  const rel = path.relative(path.resolve(baseDir), path.resolve(targetPath))
+  return !(rel === '..' || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel))
+}
 
 const fixesPath = 'data/static/codefixes'
 const cacheFile = 'rsn/cache.json'
@@ -63,7 +69,11 @@ const computeDiffs = async (keys: string[]) => {
     try {
       const snippet = await retrieveCodeSnippet(val.split('_')[0])
       if (snippet == null) continue
-      const fileData = fs.readFileSync(fixesPath + '/' + val).toString()
+      const fixFilePath = path.join(fixesPath, val)
+      if (!isPathInside(fixesPath, fixFilePath)) {
+        throw new Error('Invalid file path')
+      }
+      const fileData = fs.readFileSync(fixFilePath).toString()
       const diff = diffLines(filterString(fileData), filterString(snippet.snippet))
       let line = 0
       for (const part of diff) {
@@ -129,7 +139,10 @@ function findChangedFiles (current: CacheData, cached: CacheData): string[] {
 }
 
 function loadChallengeInfo (challengeName: string): ChallengeInfo | null {
-  const infoPath = `${fixesPath}/${challengeName}.info.yml`
+  const infoPath = path.join(fixesPath, `${challengeName}.info.yml`)
+  if (!isPathInside(fixesPath, infoPath)) {
+    throw new Error('Invalid file path')
+  }
   if (!fs.existsSync(infoPath)) return null
   const content = fs.readFileSync(infoPath, 'utf-8')
   return yaml.load(content) as ChallengeInfo
@@ -152,7 +165,11 @@ async function computeChallengeDiff (file: string): Promise<ChallengeDiff | null
   const snippet = await retrieveCodeSnippet(challengeName)
   if (!snippet) return null
 
-  const fileData = fs.readFileSync(fixesPath + '/' + file).toString()
+  const fixFilePath = path.join(fixesPath, file)
+  if (!isPathInside(fixesPath, fixFilePath)) {
+    throw new Error('Invalid file path')
+  }
+  const fileData = fs.readFileSync(fixFilePath).toString()
   const patch = structuredPatch(file, file, filterString(snippet.snippet), filterString(fileData))
 
   const lines: DiffLine[] = []
